@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eos-micro-services-admin-service
+spec:
+  selector:
+    app: eos-admin
+  ports:
+  - port: 8090
+    targetPort: 8090
+  type: ClusterIP

@@ -1,0 +1,30 @@
+# Ignore Terraform state files
+*.tfstate
+*.tfstate.backup
+
+# Ignore Terraform plan output
+plan.out
+
+# Ignore terraform lock file if not using consistent locking across systems
+.terraform.lock.hcl
+
+# Ignore the .terraform working directory
+.terraform/
+
+# Ignore private keys
+*.pem
+*.ppk
+
+# Ignore sensitive credential files
+AWS_credentails/
+
+# Ignore VSCode workspace settings (if applicable)
+.vscode/
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and temp files
+*.log
+*.tmp

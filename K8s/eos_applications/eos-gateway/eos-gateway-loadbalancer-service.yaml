@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eos-gateway-loadbalancer-service
+spec:
+  selector:
+    app: eos-gateway
+  ports:
+  - port: 5555  
+    targetPort: 5555
+  type: LoadBalancer

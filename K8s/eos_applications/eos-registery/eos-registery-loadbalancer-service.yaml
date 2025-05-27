@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eos-registery-loadbalancer-service
+spec:
+  selector:
+    app: eos-registery
+  ports:
+  - port: 8761
+    targetPort: 8761
+  type: LoadBalancer

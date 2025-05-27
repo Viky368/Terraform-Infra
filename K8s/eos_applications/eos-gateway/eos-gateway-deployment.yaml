@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eos-gateway
+spec:
+  selector:
+    matchLabels:
+      app: eos-gateway
+  template:
+    metadata:
+      labels:
+        app: eos-gateway
+    spec:
+      containers:
+      - name: eos-gateway-container
+        image: vikrambathala/eos-gateway:1.0
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 5555

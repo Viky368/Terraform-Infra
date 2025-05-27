@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eos-react-app-deployment
+spec:
+  selector:
+    matchLabels:
+      app: eos-react-app
+  template:
+    metadata:
+      labels:
+        app: eos-react-app
+    spec:
+      containers:
+      - name: eos-react-app-container
+        image: vikrambathala/eos-react-app:1.0
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 3000
+      imagePullSecrets:
+        - name: my-dockerhub-secret

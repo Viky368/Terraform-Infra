@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eos-admin
+spec:
+  selector:
+    matchLabels:
+      app: eos-admin
+  template:
+    metadata:
+      labels:
+        app: eos-admin
+    spec:
+      containers:
+      - name: eos-admin-container
+        image: vikrambathala/eos_admin:1.0
+        resources:
+         limits:
+            memory: "256Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8090
+      imagePullSecrets:
+      - name: my-dockerhub-secret

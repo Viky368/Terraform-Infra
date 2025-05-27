@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-project-api-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"  # Enable regex if you need more control over path matching
+spec:
+  ingressClassName: nginx  # Use the appropriate Ingress class for your setup
+  rules:
+  - http:
+      paths:
+      - path: /$
+        pathType: Prefix
+        backend:
+          service:
+            name: test-project-api-service  # Replace with the actual name of your FastAPI Kubernetes service
+            port:
+              number: 80
+      - path: /testapi
+        pathType: Prefix
+        backend:
+          service:
+            name: test-project-api-service  # Replace with the same service for the /testapi route
+            port:
+              number: 80

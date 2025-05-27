@@ -1,0 +1,22 @@
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-project-api-deployment
+  labels:
+    app: test-project-api
+spec:
+  replicas: 2  # Number of pod replicas
+  selector:
+    matchLabels:
+      app: test-project-api
+  template:
+    metadata:
+      labels:
+        app: test-project-api
+    spec:
+      containers:
+      - name: test-project-api
+        image: 796973481082.dkr.ecr.us-east-1.amazonaws.com/dev/testapi:latest
+        ports:
+        - containerPort: 8000
