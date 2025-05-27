@@ -55,3 +55,21 @@ jobs:
 
           git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
 
+      - name: Send job status to Splunk
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN }}
+          HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
+        run: |
+          curl -k -X POST \
+          -H "Authorization: Splunk $HEC_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"event\": \"GitHub Job '${GITHUB_JOB}' finished with status: $STATUS\",
+            \"source\": \"github\",
+            \"sourcetype\": \"_json\",
+            \"host\": \"github.com\"
+            }" \
+            "$HEC_URL/services/collector/event"
+
