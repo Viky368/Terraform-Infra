@@ -2,7 +2,7 @@ name: Terraform Manual Deploy
 
 on:
   workflow_dispatch:  # 👈 allows manual triggering
-  
+
 permissions:
   contents: write
 
@@ -50,7 +50,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-    
+
           git add terraform.tfstate terraform.tfstate.backup
           git diff --cached --quiet || git commit -m "Update Terraform state from workflow"
 
@@ -59,21 +59,26 @@ jobs:
       - name: Send job status to Splunk
         if: always()
         run: |
+          sudo apt-get update && sudo apt-get install -y jq
           STATUS="${{ job.status }}"
-          PAYLOAD=$(cat <<EOF
-            {
-              "event": "GitHub Job '${GITHUB_JOB}' finished with status: ${STATUS}",
-              "source": "github",
-              "sourcetype": "_json",
-              "host": "github.com"
-            }
-          EOF
+          PAYLOAD=$(jq -n \
+            --arg status "$STATUS" \
+            --arg job "$GITHUB_JOB" \
+            --arg source "github" \
+            --arg sourcetype "_json" \
+            --arg host "github.com" \
+            '{
+              event: "GitHub Job \($job) finished with status: \($status)",
+              source: $source,
+              sourcetype: $sourcetype,
+              host: $host
+            }'
           )
           curl -k -X POST \
-          -H "Authorization: Splunk $HEC_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d "$PAYLOAD" \
-          "$HEC_URL/services/collector/event"
+            -H "Authorization: Splunk $HEC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$HEC_URL/services/collector/event"
         env:
           HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN }}
           HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
