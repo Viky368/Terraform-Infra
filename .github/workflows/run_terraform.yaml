@@ -2,6 +2,9 @@ name: Terraform Manual Deploy
 
 on:
   workflow_dispatch:  # 👈 allows manual triggering
+  
+permissions:
+  contents: write
 
 jobs:
   terraform:
@@ -40,12 +43,15 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan.out
 
-      - name: Commit tfstate back to repo
+      - name: Push changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
+    
           git add terraform.tfstate terraform.tfstate.backup
           git diff --cached --quiet || git commit -m "Update Terraform state from workflow"
-          git push origin main
+
+          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
 
