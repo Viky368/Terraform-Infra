@@ -67,11 +67,13 @@ jobs:
             --arg source "github" \
             --arg sourcetype "_json" \
             --arg host "github.com" \
+            --arg index "main" \
             '{
               event: "GitHub Job \($job) finished with status: \($status)",
               source: $source,
               sourcetype: $sourcetype,
-              host: $host
+              host: $host,
+              index: $index
             }'
           )
           curl -k -X POST \
