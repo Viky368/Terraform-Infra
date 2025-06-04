@@ -23,9 +23,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --region us-east-1 --name dev-eks
+      # - name: Update kubeconfig
+      #   run: |
+      #     aws eks update-kubeconfig --region us-east-1 --name dev-eks
 
       - name: Checkout code
         uses: actions/checkout@v3
