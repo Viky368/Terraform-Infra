@@ -8,4 +8,6 @@ resource "helm_release" "splunk_operator" {
   version    = "2.8.0" # Change if newer available
 
   values = []
+
+  depends_on = [ null_resource.update_kubeconfig ]
 }

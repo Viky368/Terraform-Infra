@@ -11,10 +11,14 @@ variable "cluster_name" {
 
 data "aws_eks_cluster" "this" {
   name = var.cluster_name
+
+  depends_on = [ aws_eks_cluster.eks ]
 }
 
 data "aws_iam_openid_connect_provider" "oidc" {
-  url = "https://oidc.eks.us-east-1.amazonaws.com/id/68776981834745DF4DFE7557B2314377"
+  url = aws_eks_cluster.eks.identity[0].oidc[0].issuer
+
+   depends_on = [ aws_eks_cluster.eks ]
 }
 
 
