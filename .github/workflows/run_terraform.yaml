@@ -23,10 +23,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # - name: Update kubeconfig
-      #   run: |
-      #     aws eks update-kubeconfig --region us-east-1 --name dev-eks
-
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -57,31 +53,43 @@ jobs:
 
           git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
 
-      - name: Send job status to Splunk
+      - name: Send Full GitHub Logs to Splunk
         if: always()
         run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          STATUS="${{ job.status }}"
-          PAYLOAD=$(jq -n \
-            --arg status "$STATUS" \
-            --arg job "$GITHUB_JOB" \
-            --arg source "github" \
-            --arg sourcetype "_json" \
-            --arg host "github.com" \
-            --arg index "main" \
-            '{
-              event: "GitHub Job \($job) finished with status: \($status)",
-              source: $source,
-              sourcetype: $sourcetype,
-              host: $host,
-              index: $index
-            }'
-          )
-          curl -k -X POST \
-            -H "Authorization: Splunk $HEC_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            "$HEC_URL/services/collector/event"
+          sudo apt-get update && sudo apt-get install -y jq unzip curl
+
+          echo "🔧 Downloading logs from GitHub API..."
+
+          curl -sL \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -o logs.zip \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs"
+
+          unzip -o logs.zip -d logs_folder
+
+          echo "📤 Sending each log file to Splunk..."
+          for logfile in logs_folder/**/*.txt logs_folder/*.txt; do
+            LOG_CONTENT=$(cat "$logfile" | jq -Rs .)
+            PAYLOAD=$(jq -n \
+              --arg log $LOG_CONTENT \
+              --arg filename "$logfile" \
+              --arg index "main" \
+              '{
+                event: {
+                  log_file: $filename,
+                  log_content: $log
+                },
+                sourcetype: "github-logs",
+                index: $index
+              }')
+
+            curl -s -k -X POST \
+              -H "Authorization: Splunk $HEC_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "$HEC_URL/services/collector/event"
+          done
         env:
           HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN }}
           HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
