@@ -8,10 +8,12 @@ module "efs_csi_eks_role" {
   # Configure the role to be assumed by the EFS CSI driver's service account in the kube-system namespace.
   oidc_providers = {
     main = {
-      provider_arn               = data.aws_iam_openid_connect_provider.oidc.arn
+      provider_arn               = aws_iam_openid_connect_provider.eks_oidc.arn
       namespace_service_accounts = ["kube-system:efs-csi-controller-sa"]
     }
   }
+
+  depends_on = [ aws_eks_cluster.eks  ] 
 
 }
 
@@ -44,7 +46,7 @@ resource "helm_release" "efs_csi_driver" {
 # Create a StorageClass using EFS CSI Driver
 ###################################
 resource "kubernetes_storage_class_v1" "storageclass_efs" {
-  depends_on = [helm_release.efs_csi_driver, module.efs_csi_eks_role, module.efs]
+  
   metadata {
     name = "efs-sc"
     annotations = {
@@ -64,6 +66,7 @@ resource "kubernetes_storage_class_v1" "storageclass_efs" {
     gid=    "1000"
     directoryPerms   =  "750"  # Replace with your actual EFS file system ID if necessary
   }
+  depends_on = [helm_release.efs_csi_driver, module.efs_csi_eks_role, module.efs, null_resource.update_kubeconfig ]
 }
  
 

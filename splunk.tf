@@ -1,13 +1,14 @@
-resource "helm_release" "splunk_operator" {
-  name             = "splunk-operator"
-  namespace        = "splunk"
-  create_namespace = true
+# resource "helm_release" "splunk_operator" {
+#   name             = "splunk-operator"
+#   namespace        = "splunk"
+#   create_namespace = true
 
-  repository = "https://splunk.github.io/splunk-operator"
-  chart      = "splunk-operator"
-  version    = "2.8.0" # Change if newer available
+#   repository = "https://splunk.github.io/splunk-operator"
+#   chart      = "splunk-operator"
+#   version    = "2.8.0" # Change if newer available
 
-  values = []
+#   values = []
 
-  depends_on = [ null_resource.update_kubeconfig ]
-}
+#   depends_on = [ null_resource.update_kubeconfig ]
+
+# }

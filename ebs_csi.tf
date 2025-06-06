@@ -1,24 +1,19 @@
-
-# provider "kubernetes" {
-#   config_path = "~/.kube/config"
-# }
-
-variable "cluster_name" {
-  description = "The name of the EKS cluster"
-  type        = string
-  default     = "dev-eks"
-}
-
-data "aws_eks_cluster" "this" {
-  name = var.cluster_name
+data "tls_certificate" "oidc" {
+  url = aws_eks_cluster.eks.identity[0].oidc[0].issuer
 
   depends_on = [ aws_eks_cluster.eks ]
 }
 
-data "aws_iam_openid_connect_provider" "oidc" {
-  url = aws_eks_cluster.eks.identity[0].oidc[0].issuer
+# Create IAM OIDC provider
+resource "aws_iam_openid_connect_provider" "eks_oidc" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.oidc.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.eks.identity[0].oidc[0].issuer
 
-   depends_on = [ aws_eks_cluster.eks ]
+  tags = {
+    Name        = "${aws_eks_cluster.eks.name}-oidc"
+    Environment = "dev"
+  }
 }
 
 
@@ -28,11 +23,11 @@ data "aws_iam_openid_connect_provider" "oidc" {
 
   oidc_providers = {
     main = {
-      provider_arn               = data.aws_iam_openid_connect_provider.oidc.arn
+      provider_arn               = aws_iam_openid_connect_provider.eks_oidc.arn
       namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
     }
   }
-
+  depends_on = [ aws_eks_cluster.eks ]
 
 }
 
@@ -73,7 +68,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 # Create a StorageClass using gp2
 ###################################
 resource "kubernetes_storage_class_v1" "storageclass_gp2" {
-  depends_on = [module.ebs_csi_eks_role]
+  
   metadata {
     name = "gp2-encrypted"
     annotations = {
@@ -90,5 +85,6 @@ resource "kubernetes_storage_class_v1" "storageclass_gp2" {
     type      = "gp2"
     encrypted = "true"
   }
+  depends_on = [ null_resource.update_kubeconfig, module.ebs_csi_eks_role  ]
 }
 

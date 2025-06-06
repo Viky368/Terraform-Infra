@@ -1,3 +1,10 @@
+locals{
+  pvt_subnets_list = [aws_subnet.priv_sub1.id, aws_subnet.priv_sub2.id]
+  pub_subnets_cidr_list = [aws_subnet.pub_sub1.cidr_block, aws_subnet.pub_sub2.cidr_block]
+}
+
+
+
 resource "aws_vpc" "vpc" {
   cidr_block = "192.168.0.0/16"
   tags = {
