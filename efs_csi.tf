@@ -39,7 +39,7 @@ resource "helm_release" "efs_csi_driver" {
     value = module.efs_csi_eks_role.iam_role_arn
   }
 
- depends_on = [module.efs_csi_eks_role]
+ depends_on = [module.efs_csi_eks_role, aws_eks_node_group.backend, aws_eks_node_group.frontend, null_resource.update_kubeconfig ]
 }
 
 ###################################

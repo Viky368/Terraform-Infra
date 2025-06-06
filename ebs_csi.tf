@@ -27,7 +27,7 @@ resource "aws_iam_openid_connect_provider" "eks_oidc" {
       namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
     }
   }
-  depends_on = [ aws_eks_cluster.eks ]
+  depends_on = [ aws_eks_cluster.eks]
 
 }
 
@@ -44,7 +44,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   addon_name               = "aws-ebs-csi-driver"
   service_account_role_arn = module.ebs_csi_eks_role.iam_role_arn
 
-  depends_on = [ aws_eks_cluster.eks ]
+  depends_on = [ aws_eks_cluster.eks, aws_eks_node_group.backend, aws_eks_node_group.frontend ]
 }
 
 # ###################################
@@ -85,6 +85,6 @@ resource "kubernetes_storage_class_v1" "storageclass_gp2" {
     type      = "gp2"
     encrypted = "true"
   }
-  depends_on = [ null_resource.update_kubeconfig, module.ebs_csi_eks_role  ]
+  depends_on = [ aws_eks_addon.ebs_csi_driver, null_resource.update_kubeconfig  ]
 }
 
