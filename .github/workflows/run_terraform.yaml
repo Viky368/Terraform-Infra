@@ -61,35 +61,50 @@ jobs:
           echo "🔧 Downloading logs from GitHub API..."
 
           curl -sL \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
             -o logs.zip \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs"
 
-          unzip -o logs.zip -d logs_folder
+          # Verify the download
+          echo "📦 Inspecting the downloaded file..."
+          file logs.zip
+          head -n 10 logs.zip || echo "❗ Not a text file"
 
-          echo "📤 Sending each log file to Splunk..."
-          for logfile in logs_folder/**/*.txt logs_folder/*.txt; do
-            LOG_CONTENT=$(cat "$logfile" | jq -Rs .)
-            PAYLOAD=$(jq -n \
-              --arg log $LOG_CONTENT \
-              --arg filename "$logfile" \
-              --arg index "main" \
-              '{
-                event: {
-                  log_file: $filename,
-                  log_content: $log
-                },
-                sourcetype: "github-logs",
-                index: $index
-              }')
+          # Try to unzip only if it's valid
+          if unzip -tq logs.zip > /dev/null 2>&1; then
+            echo "✅ Valid zip file, extracting logs..."
+            unzip -o logs.zip -d logs_folder
 
-            curl -s -k -X POST \
-              -H "Authorization: Splunk $HEC_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$PAYLOAD" \
-              "$HEC_URL/services/collector/event"
-          done
+            echo "📤 Sending each log file to Splunk..."
+            for logfile in $(find logs_folder -type f -name "*.txt"); do
+              LOG_CONTENT=$(jq -Rs . < "$logfile")
+              PAYLOAD=$(jq -n \
+                --arg log $LOG_CONTENT \
+                --arg filename "$logfile" \
+                --arg run_id "${{ github.run_id }}" \
+                --arg job "${{ github.job }}" \
+                '{
+                  event: {
+                    run_id: $run_id,
+                    job: $job,
+                    file: $filename,
+                    content: $log
+                  },
+                  sourcetype: "github-logs",
+                  index: "main"
+                }')
+
+              curl -s -k -X POST \
+                -H "Authorization: Splunk $HEC_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD" \
+                "$HEC_URL/services/collector/event"
+            done
+          else
+            echo "❌ logs.zip is not a valid zip archive. Skipping Splunk upload."
+          fi
+
         env:
           HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN }}
           HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
