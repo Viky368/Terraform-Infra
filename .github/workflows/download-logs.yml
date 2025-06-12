@@ -2,7 +2,7 @@ name: Download and Send Logs to Splunk
 
 on:
   workflow_run:
-    workflows: ["Terraform Manual Deploy"]
+    workflows: ["Terraform Manual Deploy"]  # ✅ Triggered after this completes
     types:
       - completed
 
@@ -13,11 +13,12 @@ permissions:
 jobs:
   download-and-send:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Install tools
+      - name: Install Tools
         run: sudo apt-get update && sudo apt-get install -y jq unzip curl
 
-      - name: Download logs
+      - name: Download Logs from GitHub API
         run: |
           echo "🔧 Downloading logs from GitHub API..."
           curl -sL \
@@ -27,10 +28,17 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/logs"
 
           echo "📦 Inspecting logs..."
-          file logs.zip || echo "File type check failed"
-          unzip -o logs.zip -d logs_folder || echo "Failed to unzip"
+          file logs.zip
+          unzip -o logs.zip -d logs_folder || echo "⚠️ Failed to unzip"
 
-          for logfile in $(find logs_folder -type f -name "*.txt"); do
+      - name: Send Logs to Splunk
+        env:
+          HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN }}
+          HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
+        run: |
+          echo "📤 Sending logs to Splunk..."
+
+          find logs_folder -type f -name "*.txt" -print0 | while IFS= read -r -d '' logfile; do
             LOG_CONTENT=$(jq -Rs . < "$logfile")
             PAYLOAD=$(jq -n \
               --arg log "$LOG_CONTENT" \
@@ -48,12 +56,10 @@ jobs:
                 index: "main"
               }')
 
+            echo "➡️ Sending $logfile"
             curl -s -k -X POST \
               -H "Authorization: Splunk $HEC_TOKEN" \
               -H "Content-Type: application/json" \
               -d "$PAYLOAD" \
               "$HEC_URL/services/collector/event"
           done
-        env:
-          HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN }}
-          HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
