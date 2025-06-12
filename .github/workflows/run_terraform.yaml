@@ -1,10 +1,11 @@
 name: Terraform Manual Deploy
 
 on:
-  workflow_dispatch:  # 👈 allows manual triggering
+  workflow_dispatch:
 
 permissions:
   contents: write
+  actions: read  # ✅ Required to access logs
 
 jobs:
   terraform:
@@ -41,9 +42,9 @@ jobs:
         run: terraform apply -auto-approve tfplan.out
 
       - name: Push changes
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: always()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -58,20 +59,20 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y jq unzip curl
 
-          echo "🔧 Downloading logs from GitHub API..."
+          echo "⏳ Waiting for GitHub logs to finalize..."
+          sleep 15
 
+          echo "🔧 Downloading logs from GitHub API..."
           curl -sL \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             -o logs.zip \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs"
 
-          # Verify the download
           echo "📦 Inspecting the downloaded file..."
           file logs.zip
           head -n 10 logs.zip || echo "❗ Not a text file"
 
-          # Try to unzip only if it's valid
           if unzip -tq logs.zip > /dev/null 2>&1; then
             echo "✅ Valid zip file, extracting logs..."
             unzip -o logs.zip -d logs_folder
@@ -80,7 +81,7 @@ jobs:
             for logfile in $(find logs_folder -type f -name "*.txt"); do
               LOG_CONTENT=$(jq -Rs . < "$logfile")
               PAYLOAD=$(jq -n \
-                --arg log $LOG_CONTENT \
+                --arg log "$LOG_CONTENT" \
                 --arg filename "$logfile" \
                 --arg run_id "${{ github.run_id }}" \
                 --arg job "${{ github.job }}" \
@@ -102,7 +103,7 @@ jobs:
                 "$HEC_URL/services/collector/event"
             done
           else
-            echo "❌ logs.zip is not a valid zip archive. Skipping Splunk upload."
+            echo "❌ logs.zip is not a valid zip archive. Likely due to requesting logs from the current run. Consider moving this step to a downstream workflow."
           fi
 
         env:
