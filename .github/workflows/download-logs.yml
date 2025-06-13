@@ -38,7 +38,7 @@ jobs:
         run: |
           echo "📤 Sending logs to Splunk..."
 
-          find logs_folder -type f -name "*.txt" | while read -r logfile; do
+          find logs_folder -type f -name "*.txt" | sort | while read -r logfile; do
             LOG_CONTENT=$(jq -Rs . < "$logfile")
             PAYLOAD=$(jq -n \
               --arg log "$LOG_CONTENT" \
