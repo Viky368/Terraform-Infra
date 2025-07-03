@@ -45,7 +45,6 @@ jobs:
               --arg filename "$logfile" \
               --arg run_id "${{ github.event.workflow_run.id }}" \
               --arg workflow "${{ github.event.workflow_run.name }}" \
-              
               '{
                 event: {
                   run_id: $run_id,
