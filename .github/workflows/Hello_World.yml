@@ -1,9 +1,6 @@
 name: Hello World Workflow
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch: # allow manual trigger
 
 jobs:
