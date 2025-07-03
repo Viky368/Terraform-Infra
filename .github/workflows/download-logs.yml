@@ -2,7 +2,7 @@ name: Download and Send Logs to Splunk
 
 on:
   workflow_run:
-    workflows: ["Terraform Manual Deploy"]  # ✅ Triggered after this completes
+    workflows: ["Hello World Workflow"]  # ✅ Triggered after this completes
     types:
       - completed
 
